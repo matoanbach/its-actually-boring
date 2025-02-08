@@ -27,8 +27,34 @@
 #include <map>
 #include <stdexcept>
 #include <vector>
+#include <sys/resource.h>
+#include <unistd.h>
 
 using namespace std;
+
+#if PLATFORM == POSIX
+#include <sys/resource.h>
+#include <unistd.h>
+
+long memUsed() {
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    return usage.ru_maxrss / 1024;  // Memory used in MB
+}
+
+#elif PLATFORM == WINDOWS
+#include <windows.h>
+#include <psapi.h>
+
+size_t memUsed() {
+    PROCESS_MEMORY_COUNTERS pmc;
+    size_t currentUsage = 0;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        currentUsage = pmc.WorkingSetSize / (1024 * 1024);  // Convert from bytes to MB
+    }
+    return currentUsage;
+}
+#endif
 
 // ---------------------------------------------------------------------------
 // DatabaseTestSuite: A test class that contains methods to test both the
@@ -99,35 +125,36 @@ public:
     // This test repeatedly builds trees until a bad_alloc is thrown.
     void testMaxSizeAVL()
     {
-        cout << "[AVL] Maximum Size Test...\n";
         int stepSize = 1000;
         int offset = 0;
-        long maxStorageCapacity = 4096;
-        try
+        long maxStorageCapacity = 4096; // 4 GB memory
+
+        while (memUsed() < maxStorageCapacity)
         {
-            // We will incrementally build trees with increasing number of nodes.
-            while (memUsed() < maxStorageCapacity)
+            try
             {
                 AVL avl;
                 for (int i = 0; i < offset + stepSize; i++)
                 {
+                    std::cout << i << std::endl;
                     avl.insert(createEmployee(i));
                     offset = i;
                 }
-                // Free the tree (AVL destructor or makeEmpty call, if needed).
+                avl.makeEmpty(avl.GetRoot());
                 offset += stepSize;
             }
+            catch (const std::bad_alloc &e)
+            {
+                std::cerr << e.what() << '\n';
+                cerr << "Maximum size reached!" << endl;
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << e.what() << '\n';
+            }
+
         }
-        catch (const std::bad_alloc &e)
-        {
-            cout << "[AVL] Caught bad_alloc after approximately " << offset
-                 << " nodes were inserted into the AVL tree.\n\n";
-        }
-        catch (const std::exception &e)
-        {
-            std::cout << e.what() << "\n";
-        }
-        cout << "test_max_size: Max size of AVL is: " << offset << endl;
+        cout << "@test_max_size: Max size of AVL is: " << offset << endl;
     }
 
     // Test 4: Load test for AVL tree: repeated insertion and random access.
@@ -235,12 +262,7 @@ public:
         cout << "[map] Deletion test passed.\n\n";
     }
 
-    long memUsed()
-    {
-        struct rusage usage;
-        getrusage(RUSAGE_SELF, &usage);
-        return usage.ru_maxrss / 1024; // Memory used in MB
-    }
+
 
     // Test 3 (Map): Maximum size test.
     void testMaxSizeMap()
@@ -249,11 +271,12 @@ public:
         long maxStorageCapacity = 4096;
         int stepSize = 1000;
         int offset = 0;
+        map<int, EmployeeInfo> m;
+
         try
         {
             while (memUsed() < maxStorageCapacity)
             {
-                map<int, EmployeeInfo> m;
                 for (int i = 0; i < offset + stepSize; i++)
                 {
                     std::cout << i << std::endl;
@@ -272,6 +295,7 @@ public:
         {
             std::cerr << e.what() << '\n';
         }
+        m.clear();
         cout << "test_max_size: Max size of AVL is: " << offset << endl;
     }
 

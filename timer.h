@@ -5,7 +5,7 @@
 //function won't work on non-posix systems... so switch to WINDOWS if you are using VS
 //(its basically the old timer).  The matrix version is POSIX
 //#define PLATFORM POSIX
-#define PLATFORM WINDOWS
+#define PLATFORM POSIX
 
 /*This class represents a timer.  A timer can be used to calculate the
 time it took for a piece of code to be run.  It uses the actual time in
