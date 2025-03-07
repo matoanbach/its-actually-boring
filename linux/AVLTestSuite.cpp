@@ -122,14 +122,18 @@ public:
         while (memory_used < maxStorageCapacity)
         // while (true)
         {
-            cout<<"Total Insertions: " << totalInsertions << endl;
             try
             {
                 AVL avl;
                 // Insert 'stepSize' new elements
                 for (int i = 0; i < totalInsertions + stepSize; i++)
                 {
-                    avl.insert(createEmployee(i));
+                    EmployeeInfo empl;
+                    empl.age = 0;
+                    empl.salary = 0;
+                    empl.emplNumber = 0;
+                    empl.sin = rand();
+                    avl.insert(empl);
                     maxSize = max(maxSize, i);
                 }
                 totalInsertions += stepSize;
@@ -281,6 +285,7 @@ public:
 
         while (memory_used < maxStorageCapacity)
         {
+            // cout<<"Max Size: " << maxSize << endl;
             try
             {
                 // Insert exactly 'stepSize' new elements in each iteration.
