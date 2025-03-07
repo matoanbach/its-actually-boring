@@ -1,21 +1,3 @@
-// AVLTestSuite.cpp
-//
-// Assignment 3 - Performance Testing of a Custom Database
-// Group Project (2–3 students per group)
-// Due: Sunday, March 23, 2025
-//
-// This file contains a complete test suite that compares a custom AVL tree
-// (provided as AVLTree.cpp/AVLTree.h) with std::map. The tests include:
-//   1. Insertion correctness
-//   2. Deletion correctness
-//   3. Maximum size (catching bad_alloc)
-//   4. Load testing (repeated insertion and access)
-//   5. Speed of search (worst-case)
-//   6. Memory leak simulation (repeated creation/destruction)
-//
-//
-// (Note: The AVLTree and Timer code are given and must not be modified.)
-//
 #include "AVLTree.h"
 #include "timer.h"
 
@@ -39,7 +21,8 @@ long memUsed()
 {
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
-    return usage.ru_maxrss / 1024; // Memory used in MB (Note: on macOS, ru_maxrss is in bytes)
+    // return usage.ru_maxrss / 1024; // LINUX: Memory used in MB (Note: on macOS, ru_maxrss is in bytes)
+    return usage.ru_maxrss / (1024 * 1024); // MacOS: Memory used in MB (Note: on macOS, ru_maxrss is in bytes
 }
 
 #elif PLATFORM == WINDOWS
@@ -84,7 +67,7 @@ public:
     // Test 1: Correctness of insertion for AVL tree.
     void testInsertionAVL()
     {
-        cout << "[AVL] Insertion Correctness Test...\n";
+        cout << "[AVL] Insertion Correctness Test Started...\n";
         AVL avl;
         vector<int> vals = {50, 30, 70, 20, 40, 60, 80};
         for (int v : vals)
@@ -95,7 +78,8 @@ public:
         node *maxNode = avl.findMax(avl.GetRoot());
         assert(minNode && minNode->empl.sin == 20);
         assert(maxNode && maxNode->empl.sin == 80);
-        cout << "[AVL] Insertion test passed.\n\n";
+        cout << "[AVL] Insertion test passed.\n";
+        cout << "[AVL] Insertion Correctness Test Completed.\n\n";
         // Clean up the tree after test.
         avl.makeEmpty(avl.GetRoot());
     }
@@ -103,7 +87,7 @@ public:
     // Test 2: Correctness of deletion for AVL tree.
     void testDeletionAVL()
     {
-        cout << "[AVL] Deletion Correctness Test...\n";
+        cout << "[AVL] Deletion Correctness Test Started...\n";
         AVL avl;
         vector<int> vals = {50, 30, 70, 20, 40, 60, 80};
         for (int v : vals)
@@ -117,7 +101,8 @@ public:
         assert(avl.Find(avl.GetRoot(), 30) == NULL);
         avl.remove(70);
         assert(avl.Find(avl.GetRoot(), 70) == NULL);
-        cout << "[AVL] Deletion test passed.\n\n";
+        cout << "[AVL] Deletion test passed.\n";
+        cout << "[AVL] Deletion Correctness Test Completed.\n\n";
         // Clean up the tree after test.
         avl.makeEmpty(avl.GetRoot());
     }
@@ -126,12 +111,18 @@ public:
     // This test repeatedly builds trees until a bad_alloc is thrown.
     void testMaxSizeAVL()
     {
-        int stepSize = 5000;
+        cout << "[AVL] Maximum Size Test Started...\n";
+        int stepSize = 5000000;
+        int maxSize = 0;
         int totalInsertions = 0;
-        long maxStorageCapacity = 4096; // 4096 MB (4 GB) memory capacity
+        long maxStorageCapacity = 4096; // (500 MB =~0.5 GB) memory capacity
         long memory_used = memUsed();
+        cout << "[AVL] Current memory usage: " << memory_used << " MB" << endl;
+
         while (memory_used < maxStorageCapacity)
+        // while (true)
         {
+            cout<<"Total Insertions: " << totalInsertions << endl;
             try
             {
                 AVL avl;
@@ -139,6 +130,7 @@ public:
                 for (int i = 0; i < totalInsertions + stepSize; i++)
                 {
                     avl.insert(createEmployee(i));
+                    maxSize = max(maxSize, i);
                 }
                 totalInsertions += stepSize;
                 // Clean up the tree to free memory
@@ -146,24 +138,25 @@ public:
             }
             catch (const std::bad_alloc &e)
             {
-                std::cerr << "Caught bad_alloc: " << e.what() << '\n';
-                cerr << "Maximum size reached!" << endl;
+                cerr << "[AVL] Caught bad_alloc: " << e.what() << '\n';
+                cerr << "[AVL] Maximum size reached!" << endl;
                 break;
             }
             catch (const std::exception &e)
             {
-                std::cerr << "Exception: " << e.what() << '\n';
+                cerr << "[AVL] Exception: " << e.what() << '\n';
             }
             memory_used = memUsed();
-            cout << "Current memory usage: " << memory_used << " MB" << endl;
+            cout << "[AVL] Current memory usage: " << memory_used << " MB" << endl;
         }
-        cout << "testMaxSizeAVL: Max size AVL: " << totalInsertions << endl;
+        cout << "testMaxSizeAVL: Max size AVL: " << maxSize << "\n\n";
+        cout << "[AVL] Maximum Size Test Completed.\n";
     }
 
     // Test 4: Load test for AVL tree: repeated insertion and random access.
     void testLoadAVL(int iterations)
     {
-        cout << "[AVL] Load Test (" << iterations << " iterations)...\n";
+        cout << "[AVL] Load Test (" << iterations << " iterations) Started...\n";
         AVL avl;
         for (int i = 0; i < iterations; i++)
         {
@@ -174,7 +167,8 @@ public:
                 avl.Find(avl.GetRoot(), target);
             }
         }
-        cout << "[AVL] Load test completed.\n\n";
+        cout << "[AVL] Load test completed.\n";
+        cout << "[AVL] Load Test Completed.\n\n";
         // Clean up after test.
         avl.makeEmpty(avl.GetRoot());
     }
@@ -182,7 +176,7 @@ public:
     // Test 5: Speed test for AVL tree search.
     void testSearchSpeedAVL(int numElements)
     {
-        cout << "[AVL] Search Speed Test with " << numElements << " elements...\n";
+        cout << "[AVL] Search Speed Test with " << numElements << " elements Started...\n";
         AVL avl;
         for (int i = 0; i < numElements; i++)
         {
@@ -201,7 +195,8 @@ public:
         result = avl.Find(avl.GetRoot(), numElements - 1);
         timer.stop();
         elapsed = timer.currtime();
-        cout << "[AVL] Time to search for maximum element (key " << numElements - 1 << "): " << elapsed << " seconds.\n\n";
+        cout << "[AVL] Time to search for maximum element (key " << numElements - 1 << "): " << elapsed << " seconds.\n";
+        cout << "[AVL] Search Speed Test Completed.\n\n";
         // Clean up after test.
         avl.makeEmpty(avl.GetRoot());
     }
@@ -210,7 +205,7 @@ public:
     // (For true memory leak detection, use valgrind or Visual Studio's leak detector.)
     void testMemoryLeakAVL(int iterations)
     {
-        cout << "[AVL] Memory Leak Test Simulation (" << iterations << " iterations)...\n";
+        cout << "[AVL] Memory Leak Test Simulation (" << iterations << " iterations) Started...\n";
         for (int i = 0; i < iterations; i++)
         {
             AVL avl;
@@ -220,7 +215,7 @@ public:
             }
             avl.makeEmpty(avl.GetRoot());
         }
-        cout << "[AVL] Memory leak simulation test completed.\n\n";
+        cout << "[AVL] Memory Leak Test Simulation Completed.\n\n";
     }
 
     // -----------------------------------------------------------------------
@@ -230,7 +225,7 @@ public:
     // Test 1 (Map): Correctness of insertion.
     void testInsertionMap()
     {
-        cout << "[map] Insertion Correctness Test...\n";
+        cout << "[map] Insertion Correctness Test Started...\n";
         map<int, EmployeeInfo> m;
         vector<int> vals = {50, 30, 70, 20, 40, 60, 80};
         for (int v : vals)
@@ -242,7 +237,8 @@ public:
         auto it = m.end();
         it--;
         assert(it->first == 80);
-        cout << "[map] Insertion test passed.\n\n";
+        cout << "[map] Insertion test passed.\n";
+        cout << "[map] Insertion Correctness Test Completed.\n\n";
         // Clean up the map.
         m.clear();
     }
@@ -250,7 +246,7 @@ public:
     // Test 2 (Map): Correctness of deletion.
     void testDeletionMap()
     {
-        cout << "[map] Deletion Correctness Test...\n";
+        cout << "[map] Deletion Correctness Test Started...\n";
         map<int, EmployeeInfo> m;
         vector<int> vals = {50, 30, 70, 20, 40, 60, 80};
         for (int v : vals)
@@ -264,7 +260,8 @@ public:
         assert(m.find(30) == m.end());
         m.erase(70);
         assert(m.find(70) == m.end());
-        cout << "[map] Deletion test passed.\n\n";
+        cout << "[map] Deletion test passed.\n";
+        cout << "[map] Deletion Correctness Test Completed.\n\n";
         // Clean up the map.
         m.clear();
     }
@@ -272,13 +269,15 @@ public:
     // Test 3 (Map): Maximum size test.
     void testMaxSizeMap()
     {
-        cout << "[map] Maximum Size Test...\n";
+        cout << "[map] Maximum Size Test Started...\n";
+        // int stepSize = 500000;
         int stepSize = 1000;
+        int maxSize = 0;
         int totalInsertions = 0;
         map<int, EmployeeInfo> m;
         long memory_used = memUsed();
-        long maxStorageCapacity = memory_used + 4096; // 4096 MB memory capacity
-        cout << "Current memory usage: " << memory_used << " MB" << endl;
+        long maxStorageCapacity = memory_used + 500; // 500 MB memory capacity relative to current usage
+        cout << "[map] Current memory usage: " << memory_used << " MB" << endl;
 
         while (memory_used < maxStorageCapacity)
         {
@@ -289,6 +288,7 @@ public:
                 {
                     int key = totalInsertions + i;
                     m.insert(make_pair(key, createEmployee(key)));
+                    maxSize = max(maxSize, i);
                 }
                 totalInsertions += stepSize;
             }
@@ -300,19 +300,20 @@ public:
             }
             catch (const std::exception &e)
             {
-                std::cerr << e.what() << '\n';
+                cerr << "[map] Exception: " << e.what() << '\n';
             }
             memory_used = memUsed();
-            cout << "Current memory usage: " << memory_used << " MB" << endl;
+            cout << "[map] Current memory usage: " << memory_used << " MB" << endl;
         }
         m.clear();
-        cout << "testMaxSizeMap: Max size of std::map is: " << totalInsertions << endl;
+        cout << "[map] Maximum Size Test Completed.\n";
+        cout << "testMaxSizeMap: Max size of std::map is: " << maxSize << "\n\n";
     }
 
     // Test 4 (Map): Load test.
     void testLoadMap(int iterations)
     {
-        cout << "[map] Load Test (" << iterations << " iterations)...\n";
+        cout << "[map] Load Test (" << iterations << " iterations) Started...\n";
         map<int, EmployeeInfo> m;
         for (int i = 0; i < iterations; i++)
         {
@@ -323,14 +324,15 @@ public:
                 m.find(target);
             }
         }
-        cout << "[map] Load test completed.\n\n";
+        cout << "[map] Load test completed.\n";
+        cout << "[map] Load Test Completed.\n\n";
         m.clear();
     }
 
     // Test 5 (Map): Search speed test.
     void testSearchSpeedMap(int numElements)
     {
-        cout << "[map] Search Speed Test with " << numElements << " elements...\n";
+        cout << "[map] Search Speed Test with " << numElements << " elements Started...\n";
         map<int, EmployeeInfo> m;
         for (int i = 0; i < numElements; i++)
         {
@@ -347,14 +349,15 @@ public:
         it = m.find(numElements - 1);
         timer.stop();
         elapsed = timer.currtime();
-        cout << "[map] Time to search for maximum element (key " << numElements - 1 << "): " << elapsed << " seconds.\n\n";
+        cout << "[map] Time to search for maximum element (key " << numElements - 1 << "): " << elapsed << " seconds.\n";
+        cout << "[map] Search Speed Test Completed.\n\n";
         m.clear();
     }
 
     // Test 6 (Map): Memory leak simulation.
     void testMemoryLeakMap(int iterations)
     {
-        cout << "[map] Memory Leak Test Simulation (" << iterations << " iterations)...\n";
+        cout << "[map] Memory Leak Test Simulation (" << iterations << " iterations) Started...\n";
         for (int i = 0; i < iterations; i++)
         {
             map<int, EmployeeInfo> m;
@@ -364,7 +367,7 @@ public:
             }
             m.clear();
         }
-        cout << "[map] Memory leak simulation test completed.\n\n";
+        cout << "[map] Memory Leak Test Simulation Completed.\n\n";
     }
 };
 
@@ -434,24 +437,6 @@ int main()
     cout << "=============================================\n";
     cout << "All tests completed.\n";
     cout << "=============================================\n\n";
-
-    // -----------------------------------------------------------------------
-    // Answers to Assignment Questions:
-    // -----------------------------------------------------------------------
-    cout << "Answers to Assignment Questions:\n";
-    cout << "1. Additional tests: One could include concurrency tests (simultaneous insertions, deletions, searches) "
-         << "and stress tests using extreme patterns (e.g., all duplicate keys or highly skewed input) to further validate robustness.\n";
-    cout << "2. std::map vs. AVL Tree: Both offer O(log n) operations. The std::map (usually a red–black tree) "
-         << "is robust and well-optimized, while the custom AVL tree maintains stricter balance (and possibly faster search times) "
-         << "but may incur additional overhead from frequent rotations.\n";
-    cout << "3. Unexpected results: In practice, the AVL tree’s frequent rotations may reduce its theoretical speed advantage, "
-         << "yielding performance similar to std::map under certain workloads.\n";
-    cout << "4. Recommendation: For rapid development and long-term reliability, std::map is recommended. "
-         << "However, if minimal memory overhead and a custom solution are critical, a well-implemented AVL tree can be preferable.\n";
-    cout << "5. Memory reservation: Based on maximum size tests, approximately 4 GB (or a bit more) should be reserved "
-         << "for the database under worst-case scenarios.\n";
-    cout << "6. Reusability: The AVL tree’s clean interface makes it reusable in other projects; similarly, the test software "
-         << "is modular and can be extended for future testing needs.\n";
 
     return 0;
 }

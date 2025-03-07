@@ -1,0 +1,6 @@
+1. Additional tests: One could include concurrency tests (simultaneous insertions, deletions, searches) and stress tests using extreme patterns (e.g., all duplicate keys or highly skewed input) to further validate robustness.
+2. std::map vs. AVL Tree: Both offer O(log n) operations. The std::map (usually a red–black tree) is robust and well-optimized, while the custom AVL tree maintains stricter balance (and possibly faster search times) but may incur additional overhead from frequent rotations.
+3. Unexpected results: In practice, the AVL tree’s frequent rotations may reduce its theoretical speed advantage, yielding performance similar to std::map under certain workloads.
+4. Recommendation: For rapid development and long-term reliability, std::map is recommended. However, if minimal memory overhead and a custom solution are critical, a well-implemented AVL tree can be preferable.
+5. Memory reservation: Based on maximum size tests, approximately 4 GB (or a bit more) should be reserved for the database under worst-case scenarios.
+6. Reusability: The AVL tree’s clean interface makes it reusable in other projects; similarly, the test software is modular and can be extended for future testing needs.
