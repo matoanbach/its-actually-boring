@@ -1,4 +1,4 @@
-// TestAll.cpp
+// AVLTestSuite.cpp
 //
 // Assignment 3 - Performance Testing of a Custom Database
 // Group Project (2–3 students per group)
@@ -13,7 +13,6 @@
 //   5. Speed of search (worst-case)
 //   6. Memory leak simulation (repeated creation/destruction)
 //
-// At the end, answers to the assignment questions are printed.
 //
 // (Note: The AVLTree and Timer code are given and must not be modified.)
 //
@@ -36,21 +35,24 @@ using namespace std;
 #include <sys/resource.h>
 #include <unistd.h>
 
-long memUsed() {
+long memUsed()
+{
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
-    return usage.ru_maxrss / 1024;  // Memory used in MB
+    return usage.ru_maxrss / 1024; // Memory used in MB (Note: on macOS, ru_maxrss is in bytes)
 }
 
 #elif PLATFORM == WINDOWS
 #include <windows.h>
 #include <psapi.h>
 
-size_t memUsed() {
+size_t memUsed()
+{
     PROCESS_MEMORY_COUNTERS pmc;
     size_t currentUsage = 0;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-        currentUsage = pmc.WorkingSetSize / (1024 * 1024);  // Convert from bytes to MB
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
+    {
+        currentUsage = pmc.WorkingSetSize / (1024 * 1024); // Convert from bytes to MB
     }
     return currentUsage;
 }
@@ -89,14 +91,13 @@ public:
         {
             avl.insert(createEmployee(v));
         }
-        // Check that the in-order order is as expected.
-        // (Since our AVL tree does not directly return a sorted list,
-        // we test that the minimum and maximum are as expected.)
         node *minNode = avl.findMin(avl.GetRoot());
         node *maxNode = avl.findMax(avl.GetRoot());
         assert(minNode && minNode->empl.sin == 20);
         assert(maxNode && maxNode->empl.sin == 80);
         cout << "[AVL] Insertion test passed.\n\n";
+        // Clean up the tree after test.
+        avl.makeEmpty(avl.GetRoot());
     }
 
     // Test 2: Correctness of deletion for AVL tree.
@@ -109,52 +110,54 @@ public:
         {
             avl.insert(createEmployee(v));
         }
-        // Delete a leaf: remove 20.
+        // Delete nodes and verify deletion.
         avl.remove(20);
         assert(avl.Find(avl.GetRoot(), 20) == NULL);
-        // Delete a node with one child: remove 30.
         avl.remove(30);
         assert(avl.Find(avl.GetRoot(), 30) == NULL);
-        // Delete a node with two children: remove 70.
         avl.remove(70);
         assert(avl.Find(avl.GetRoot(), 70) == NULL);
         cout << "[AVL] Deletion test passed.\n\n";
+        // Clean up the tree after test.
+        avl.makeEmpty(avl.GetRoot());
     }
 
     // Test 3: Maximum size test for AVL tree.
     // This test repeatedly builds trees until a bad_alloc is thrown.
     void testMaxSizeAVL()
     {
-        int stepSize = 1000;
-        int offset = 0;
-        long maxStorageCapacity = 4096; // 4 GB memory
-
-        while (memUsed() < maxStorageCapacity)
+        int stepSize = 5000;
+        int totalInsertions = 0;
+        long maxStorageCapacity = 4096; // 4096 MB (4 GB) memory capacity
+        long memory_used = memUsed();
+        while (memory_used < maxStorageCapacity)
         {
             try
             {
                 AVL avl;
-                for (int i = 0; i < offset + stepSize; i++)
+                // Insert 'stepSize' new elements
+                for (int i = 0; i < totalInsertions + stepSize; i++)
                 {
-                    std::cout << i << std::endl;
                     avl.insert(createEmployee(i));
-                    offset = i;
                 }
+                totalInsertions += stepSize;
+                // Clean up the tree to free memory
                 avl.makeEmpty(avl.GetRoot());
-                offset += stepSize;
             }
             catch (const std::bad_alloc &e)
             {
-                std::cerr << e.what() << '\n';
+                std::cerr << "Caught bad_alloc: " << e.what() << '\n';
                 cerr << "Maximum size reached!" << endl;
+                break;
             }
             catch (const std::exception &e)
             {
-                std::cerr << e.what() << '\n';
+                std::cerr << "Exception: " << e.what() << '\n';
             }
-
+            memory_used = memUsed();
+            cout << "Current memory usage: " << memory_used << " MB" << endl;
         }
-        cout << "@test_max_size: Max size of AVL is: " << offset << endl;
+        cout << "testMaxSizeAVL: Max size AVL: " << totalInsertions << endl;
     }
 
     // Test 4: Load test for AVL tree: repeated insertion and random access.
@@ -172,6 +175,8 @@ public:
             }
         }
         cout << "[AVL] Load test completed.\n\n";
+        // Clean up after test.
+        avl.makeEmpty(avl.GetRoot());
     }
 
     // Test 5: Speed test for AVL tree search.
@@ -179,7 +184,6 @@ public:
     {
         cout << "[AVL] Search Speed Test with " << numElements << " elements...\n";
         AVL avl;
-        // Populate the AVL tree with sequential keys.
         for (int i = 0; i < numElements; i++)
         {
             avl.insert(createEmployee(i));
@@ -198,6 +202,8 @@ public:
         timer.stop();
         elapsed = timer.currtime();
         cout << "[AVL] Time to search for maximum element (key " << numElements - 1 << "): " << elapsed << " seconds.\n\n";
+        // Clean up after test.
+        avl.makeEmpty(avl.GetRoot());
     }
 
     // Test 6: Memory leak simulation for AVL tree.
@@ -208,7 +214,6 @@ public:
         for (int i = 0; i < iterations; i++)
         {
             AVL avl;
-            // Insert 1000 nodes per iteration.
             for (int j = 0; j < 1000; j++)
             {
                 avl.insert(createEmployee(j));
@@ -238,6 +243,8 @@ public:
         it--;
         assert(it->first == 80);
         cout << "[map] Insertion test passed.\n\n";
+        // Clean up the map.
+        m.clear();
     }
 
     // Test 2 (Map): Correctness of deletion.
@@ -250,53 +257,56 @@ public:
         {
             m.insert(make_pair(v, createEmployee(v)));
         }
-        // Remove key 20.
+        // Remove keys and verify deletion.
         m.erase(20);
         assert(m.find(20) == m.end());
-        // Remove key 30.
         m.erase(30);
         assert(m.find(30) == m.end());
-        // Remove key 70.
         m.erase(70);
         assert(m.find(70) == m.end());
         cout << "[map] Deletion test passed.\n\n";
+        // Clean up the map.
+        m.clear();
     }
-
-
 
     // Test 3 (Map): Maximum size test.
     void testMaxSizeMap()
     {
         cout << "[map] Maximum Size Test...\n";
-        long maxStorageCapacity = 4096;
         int stepSize = 1000;
-        int offset = 0;
+        int totalInsertions = 0;
         map<int, EmployeeInfo> m;
+        long memory_used = memUsed();
+        long maxStorageCapacity = memory_used + 4096; // 4096 MB memory capacity
+        cout << "Current memory usage: " << memory_used << " MB" << endl;
 
-        try
+        while (memory_used < maxStorageCapacity)
         {
-            while (memUsed() < maxStorageCapacity)
+            try
             {
-                for (int i = 0; i < offset + stepSize; i++)
+                // Insert exactly 'stepSize' new elements in each iteration.
+                for (int i = 0; i < stepSize; i++)
                 {
-                    std::cout << i << std::endl;
-                    m.insert(make_pair(i, createEmployee(i)));
-                    stepSize++;
+                    int key = totalInsertions + i;
+                    m.insert(make_pair(key, createEmployee(key)));
                 }
-                offset += stepSize;
+                totalInsertions += stepSize;
             }
-        }
-        catch (const std::bad_alloc &e)
-        {
-            cout << "[map] Caught bad_alloc after inserting approximately " << offset
-                 << " elements into std::map.\n\n";
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << e.what() << '\n';
+            catch (const std::bad_alloc &e)
+            {
+                cout << "[map] Caught bad_alloc after inserting approximately "
+                     << totalInsertions << " elements into std::map.\n\n";
+                break;
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << e.what() << '\n';
+            }
+            memory_used = memUsed();
+            cout << "Current memory usage: " << memory_used << " MB" << endl;
         }
         m.clear();
-        cout << "test_max_size: Max size of AVL is: " << offset << endl;
+        cout << "testMaxSizeMap: Max size of std::map is: " << totalInsertions << endl;
     }
 
     // Test 4 (Map): Load test.
@@ -314,6 +324,7 @@ public:
             }
         }
         cout << "[map] Load test completed.\n\n";
+        m.clear();
     }
 
     // Test 5 (Map): Search speed test.
@@ -326,19 +337,18 @@ public:
             m.insert(make_pair(i, createEmployee(i)));
         }
         Timer timer;
-        // Search for the minimum element.
         timer.start();
         auto it = m.find(0);
         timer.stop();
         double elapsed = timer.currtime();
         cout << "[map] Time to search for minimum element (key 0): " << elapsed << " seconds.\n";
-        // Search for the maximum element.
         timer.reset();
         timer.start();
         it = m.find(numElements - 1);
         timer.stop();
         elapsed = timer.currtime();
         cout << "[map] Time to search for maximum element (key " << numElements - 1 << "): " << elapsed << " seconds.\n\n";
+        m.clear();
     }
 
     // Test 6 (Map): Memory leak simulation.
@@ -383,11 +393,11 @@ int main()
     cout << "Press Enter to continue...\n";
     getchar();
 
-    suite.testLoadAVL(50000); // You can adjust the iteration count as needed.
+    suite.testLoadAVL(50000); // Adjust iterations as needed.
     cout << "Press Enter to continue...\n";
     getchar();
 
-    suite.testSearchSpeedAVL(100000); // Adjust the element count as needed.
+    suite.testSearchSpeedAVL(100000); // Adjust element count as needed.
     cout << "Press Enter to continue...\n";
     getchar();
 
