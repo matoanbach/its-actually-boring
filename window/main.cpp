@@ -115,7 +115,7 @@ public:
         int stepSize = 500000;
         int maxSize = 0;
         int totalInsertions = 0;
-        long maxStorageCapacity = 1024; // (500 MB =~0.5 GB) memory capacity
+        long maxStorageCapacity = 3; // (500 MB =~0.5 GB) memory capacity
         long memory_used = memUsed();
         cout << "[AVL] Current memory usage: " << memory_used << " MB" << endl;
 
@@ -281,7 +281,7 @@ public:
         int totalInsertions = 0;
         map<int, EmployeeInfo> m;
         long memory_used = memUsed();
-        long maxStorageCapacity = memory_used + 1024; // 500 MB memory capacity relative to current usage
+        long maxStorageCapacity = memory_used + 3; // 500 MB memory capacity relative to current usage
         cout << "[map] Current memory usage: " << memory_used << " MB" << endl;
 
         while (memory_used < maxStorageCapacity)
