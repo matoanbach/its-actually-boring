@@ -115,12 +115,12 @@ public:
         int stepSize = 5000000;
         int maxSize = 0;
         int totalInsertions = 0;
-        long maxStorageCapacity = 4096; // (500 MB =~0.5 GB) memory capacity
+        long maxStorageCapacity = 500; // (500 MB =~0.5 GB) memory capacity
         long memory_used = memUsed();
         cout << "[AVL] Current memory usage: " << memory_used << " MB" << endl;
 
         while (memory_used < maxStorageCapacity)
-        // while (true)
+        // while (false)
         {
             try
             {
@@ -274,22 +274,22 @@ public:
     void testMaxSizeMap()
     {
         cout << "[map] Maximum Size Test Started...\n";
-        // int stepSize = 500000;
-        int stepSize = 1000;
+        int stepSize = 5000000;
         int maxSize = 0;
         int totalInsertions = 0;
-        map<int, EmployeeInfo> m;
         long memory_used = memUsed();
-        long maxStorageCapacity = memory_used + 500; // 500 MB memory capacity relative to current usage
+        long maxStorageCapacity = 752; // (500 MB =~0.5 GB) memory capacity
         cout << "[map] Current memory usage: " << memory_used << " MB" << endl;
-
+        cout << "[map] maxStorageCapacity: " << maxStorageCapacity << " MB" << endl;
+        
+        map<int, EmployeeInfo> m;
         while (memory_used < maxStorageCapacity)
         {
             // cout<<"Max Size: " << maxSize << endl;
             try
             {
                 // Insert exactly 'stepSize' new elements in each iteration.
-                for (int i = 0; i < stepSize; i++)
+                for (int i = 0; i < totalInsertions + stepSize; i++)
                 {
                     int key = totalInsertions + i;
                     m.insert(make_pair(key, createEmployee(key)));
